@@ -51,3 +51,13 @@ export interface Database {
 
 /** Convenience alias for a single row. */
 export type ToolRow = Database["public"]["Tables"]["tools"]["Row"];
+
+// ── community_notes ────────────────────────────────────────────────────────
+
+export interface CommunityNoteRow {
+  id: string;
+  tool_slug: string;
+  author_name: string | null;
+  note: string;
+  created_at: string;
+}

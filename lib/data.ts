@@ -268,6 +268,56 @@ export async function adminDeleteTool(id: string): Promise<{ error: string | nul
   return { error: null };
 }
 
+// ── Community Notes ────────────────────────────────────────────────────────
+
+export interface NoteItem {
+  id: string;
+  tool_slug: string;
+  author_name: string | null;
+  note: string;
+  created_at: string;
+}
+
+/**
+ * Fetch all community notes for a given tool slug, newest first.
+ */
+export async function getCommunityNotes(toolSlug: string): Promise<NoteItem[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any)
+    .from("community_notes")
+    .select("id, tool_slug, author_name, note, created_at")
+    .eq("tool_slug", toolSlug)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("[getCommunityNotes]", error.message);
+    return [];
+  }
+  return (data ?? []) as NoteItem[];
+}
+
+/**
+ * Insert a new community note.
+ */
+export async function postCommunityNote(payload: {
+  tool_slug: string;
+  note: string;
+  author_name: string | null;
+}): Promise<{ data: NoteItem | null; error: string | null }> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any)
+    .from("community_notes")
+    .insert(payload)
+    .select("id, tool_slug, author_name, note, created_at")
+    .single();
+
+  if (error) {
+    console.error("[postCommunityNote]", error.message);
+    return { data: null, error: error.message };
+  }
+  return { data: data as NoteItem, error: null };
+}
+
 /**
  * Submit a new tool. Saved with status = 'pending' — requires admin approval
  * before it appears on any public page.

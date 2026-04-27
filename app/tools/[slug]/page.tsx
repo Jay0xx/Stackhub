@@ -7,8 +7,10 @@ import { CodeBlock } from "@/components/code-block";
 import { OfficialLinks } from "@/components/official-links";
 import { ToolCard } from "@/components/tool-card";
 import { LiveStarBadge } from "@/components/live-star-badge";
+import { CommunityNotes } from "@/components/community-notes";
 import {
   getAllSlugs,
+  getCommunityNotes,
   getRelatedTools,
   getToolBySlug,
   getToolStatus,
@@ -42,7 +44,6 @@ export async function generateMetadata({
       title: `${tool.name} | StackHub`,
       description,
       url,
-      // Inherits og-default.svg from root layout until per-tool OG images exist.
     },
     twitter: {
       title: `${tool.name} | StackHub`,
@@ -63,7 +64,12 @@ export default async function ToolDetailPage({ params }: PageProps) {
     return <UnderReview slug={slug} />;
   }
 
-  const related = await getRelatedTools(tool.relatedSlugs ?? [], 4);
+  // Fetch related tools + initial community notes in parallel
+  const [related, initialNotes] = await Promise.all([
+    getRelatedTools(tool.relatedSlugs ?? [], 4),
+    getCommunityNotes(slug),
+  ]);
+
   const chips = [tool.category, ...(tool.tags ?? [])];
 
   return (
@@ -190,40 +196,9 @@ export default async function ToolDetailPage({ params }: PageProps) {
         </Container>
       )}
 
-      {/* 6. Community Notes */}
+      {/* 6. Community Notes — real, live section */}
       <Container className="pb-16">
-        <div className="flex items-baseline justify-between gap-4">
-          <SectionHeading>Community Notes</SectionHeading>
-          <button
-            type="button"
-            disabled
-            aria-disabled="true"
-            title="Coming soon"
-            className="inline-flex h-8 items-center rounded-md border border-border bg-background px-3 text-xs font-medium text-muted-foreground opacity-70"
-          >
-            Add note
-          </button>
-        </div>
-        <div className="mt-6 flex flex-col gap-3">
-          {(tool.communityNotes ?? PLACEHOLDER_NOTES).map((note, i) => (
-            <article
-              key={`${tool.slug}-note-${i}`}
-              className="rounded-lg border border-border bg-card p-5"
-            >
-              <header className="flex items-center justify-between gap-3">
-                <span className="text-xs font-medium text-foreground">
-                  {note.author}
-                </span>
-                <span className="text-[11px] text-muted-foreground">
-                  {note.timeAgo}
-                </span>
-              </header>
-              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                {note.body}
-              </p>
-            </article>
-          ))}
-        </div>
+        <CommunityNotes toolSlug={slug} initialNotes={initialNotes} />
       </Container>
 
       {/* 7. Related Tools */}
@@ -239,7 +214,6 @@ export default async function ToolDetailPage({ params }: PageProps) {
             </Link>
           </div>
 
-          {/* Horizontal scroll on narrow screens, grid on wider viewports */}
           <div className="mt-6 -mx-6 overflow-x-auto px-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <ul className="grid auto-cols-[minmax(240px,1fr)] grid-flow-col gap-4 sm:grid-flow-row sm:auto-cols-auto sm:grid-cols-2 lg:grid-cols-4">
               {related.map((t) => (
@@ -292,31 +266,12 @@ function ArrowIcon() {
   );
 }
 
-/** Fallback notes for tools that don't yet have community content. */
-const PLACEHOLDER_NOTES: {
-  author: string;
-  timeAgo: string;
-  body: string;
-}[] = [
-  {
-    author: "@stackhub",
-    timeAgo: "just now",
-    body: "Community notes will appear here once the first contributor drops one. Submissions are open to anyone with a connected wallet.",
-  },
-  {
-    author: "@stackhub",
-    timeAgo: "just now",
-    body: "Have a tip, gotcha, or production story worth sharing? Help the next developer save an afternoon.",
-  },
-];
-
 /* ── Under Review page ──────────────────────────────────────────────────── */
 
 function UnderReview({ slug }: { slug: string }) {
   return (
     <Container className="py-24">
       <div className="mx-auto max-w-md text-center flex flex-col items-center gap-6">
-        {/* Icon */}
         <div className="flex h-14 w-14 items-center justify-center rounded-full border border-border">
           <svg
             width="22"
